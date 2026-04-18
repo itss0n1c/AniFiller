@@ -2,6 +2,9 @@
 	"name": "anifiller",
 	"private": true,
 	"scripts": {
+		"dev": "bun --watch ./src/core/validate/index.ts",
+		"cache": "bun ./src/core/cache.ts",
+		"validate": "bun ./src/core/validate/index.ts",
 		"schema": "bun ./src/schema.ts",
 		"compile": "bun ./src/index.ts",
 		"compile:dev": "bun --watch ./src/index.ts",
@@ -12,6 +15,7 @@
 		"@types/bun": "1.3.12"
 	},
 	"dependencies": {
+		"aniql": "1.3.3",
 		"arktype": "2.2.0"
 	}
 }

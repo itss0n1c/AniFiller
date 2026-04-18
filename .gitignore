@@ -1,2 +1,5 @@
 node_modules/
 raw/
+data/meta/*
+!data/meta/cache/
+dist/
