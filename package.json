@@ -6,6 +6,7 @@
 		"cache": "bun ./src/core/cache.ts",
 		"validate": "bun ./src/core/validate/index.ts",
 		"schema": "bun ./src/schema.ts",
+		"readme": "bun ./src/readme.ts",
 		"compile": "bun ./src/index.ts",
 		"compile:dev": "bun --watch ./src/index.ts",
 		"check": "bunx @biomejs/biome check"

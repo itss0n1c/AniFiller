@@ -1,7 +1,6 @@
 import { basename, join } from 'node:path';
 import { type Comments, type ShowFull, validate } from '$core';
 import { paths } from '$utils';
-import { save_readme } from './readme';
 
 const comments_path = join(paths.meta, 'comments.json');
 
@@ -18,7 +17,6 @@ const save_comments = (comments: Comments) => Bun.write(comments_path, JSON.stri
 
 const { shows, comments } = await validate();
 
-await save_readme(shows);
 await save_comments(comments);
 
 await save_dist(shows);

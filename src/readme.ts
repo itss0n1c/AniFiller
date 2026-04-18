@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ShowFull } from '$core';
+import { shows_collect } from '$core/shows';
 import { paths } from '$utils';
 
 export async function save_readme(shows: ShowFull[]) {
@@ -30,3 +31,8 @@ function _shows_table(shows: ShowFull[]) {
 
 	return [...header, ...rows].join('\n');
 }
+
+if (import.meta.main)
+	await shows_collect()
+		.then((x) => x.shows)
+		.then(save_readme);

@@ -65,4 +65,7 @@ function _format_status(status: KuroiruRes['status']): CacheItem['status'] {
 	throw new Error(`unknown status: ${status}`);
 }
 
-if (import.meta.main) await cache_list(await shows_collect().then((x) => x.shows));
+if (import.meta.main)
+	await shows_collect()
+		.then((x) => x.shows)
+		.then(cache_list);

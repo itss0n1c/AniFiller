@@ -1,22 +1,31 @@
 name: Compile And Release
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref }}
+    cancel-in-progress: true
+
 on:
-    push:
+    pull_request:
+        types:
+            - closed
         branches:
             - main
+        paths:
+            - data/shows/**
 
 permissions:
     contents: write
 
 jobs:
     release:
+        if: github.event.pull_request.merged == true
         runs-on: ubuntu-latest
 
         steps:
             - name: Check out repository
               uses: actions/checkout@v4
               with:
-                  ref: ${{ github.ref_name }}
+                  ref: ${{ github.event.pull_request.merge_commit_sha }}
 
             - name: Setup Bun
               uses: oven-sh/setup-bun@v2
@@ -29,24 +38,12 @@ jobs:
 
             - name: Set release vars
               id: vars
+              env:
+                  MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
               shell: bash
               run: |
-                  echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-                  echo "shows=$(bun -e '
-                    const fs = require(\"fs\");
-                    const data = JSON.parse(fs.readFileSync(\"dist/anifiller.json\", \"utf8\"));
-                    if (!Array.isArray(data)) throw new Error(\"dist/anifiller.json is not an array\");
-                    console.log(data.length);
-                  ')" >> "$GITHUB_OUTPUT"
-
-            - name: Commit README changes
-              shell: bash
-              run: |
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git add README.md
-                  git diff --cached --quiet || git commit -m "Update README"
-                  git push origin HEAD:${{ github.ref_name }}
+                  echo "short_sha=${MERGE_SHA::10}" >> "$GITHUB_OUTPUT"
+                  echo "shows=$(jq 'length' dist/anifiller.json)" >> "$GITHUB_OUTPUT"
 
             - name: Create release
               uses: softprops/action-gh-release@v2

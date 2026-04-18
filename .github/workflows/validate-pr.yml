@@ -1,0 +1,89 @@
+name: Validate PR
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+on:
+    pull_request:
+        types:
+            - opened
+            - synchronize
+            - reopened
+
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    compile:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Validate changed files
+              id: changed_files
+              continue-on-error: true
+              env:
+                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+              shell: bash
+              run: |
+                  mapfile -t changed_files < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+                  printf '%s\n' "${changed_files[@]}"
+
+                  show_files="$(printf '%s\n' "${changed_files[@]}" | grep '^data/shows/' || true)"
+                  other_files="$(printf '%s\n' "${changed_files[@]}" | grep -v '^data/shows/' || true)"
+
+                  if [ -n "$show_files" ] && [ -n "$other_files" ]; then
+                    {
+                      echo 'message<<EOF'
+                      echo 'This PR mixes `data/shows/` changes with changes to other files.'
+                      echo
+                      echo 'Allowed:'
+                      echo '- only `data/shows/**` changes'
+                      echo '- only non-`data/shows/**` changes'
+                      echo
+                      echo 'Not allowed:'
+                      echo '- changing `data/shows/**` and other files in the same PR'
+                      echo
+                      echo 'Files outside `data/shows/`:'
+                      echo "$other_files"
+                      echo 'EOF'
+                    } >> "$GITHUB_OUTPUT"
+                    exit 1
+                  fi
+
+            - name: Comment on invalid PR
+              if: steps.changed_files.outcome == 'failure'
+              uses: actions/github-script@v7
+              env:
+                  COMMENT_BODY: ${{ steps.changed_files.outputs.message }}
+              with:
+                  script: |
+                      await github.rest.issues.createComment({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: context.issue.number,
+                        body: process.env.COMMENT_BODY
+                      });
+
+            - name: Fail invalid PR
+              if: steps.changed_files.outcome == 'failure'
+              run: exit 1
+
+            - name: Setup Bun
+              if: steps.changed_files.outcome == 'success'
+              uses: oven-sh/setup-bun@v2
+
+            - name: Install dependencies
+              if: steps.changed_files.outcome == 'success'
+              run: bun install --frozen-lockfile
+
+            - name: Validate compile
+              if: steps.changed_files.outcome == 'success'
+              run: bun compile
