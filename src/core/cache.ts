@@ -27,7 +27,8 @@ export async function cache_list(shows: ShowFull[]) {
 		const x = mal_ids[i];
 		const media = shows.find((s) => s.mappings.mal_id === x);
 		if (!media) continue;
-		const existing = !!cache.find((c) => c.mal_id === x);
+		const existingIndex = cache.findIndex((c) => c.mal_id === x);
+		const existing = existingIndex !== -1;
 		const res = await kuroiru_media(x);
 		const item = schema_cache_item.assert({
 			mal_id: x,
@@ -35,7 +36,8 @@ export async function cache_list(shows: ShowFull[]) {
 			episode_count: res.lastep,
 			status: _format_status(res.status),
 		});
-		cache.push(item);
+		if (!existing) cache.push(item);
+		else cache[existingIndex] = item;
 		await Bun.write(cache_path, JSON.stringify(cache, null, 4));
 		console.log(`${i + 1}/${mal_ids.length} ${existing ? 'updated' : 'added'} cache for [${x}] ${media.title}`);
 		await wait(500);
